@@ -16,7 +16,7 @@ This, further combined with **Hidden Markov Model prediction smoothing** allowed
 on the validation set. We also explored feature pre-processing by employing several **parallel 
 Per-Channel Energy Normalization front-end layers (PPCEN)**.
 
-#####For more information have a look at our [DCASE2020 system description](http://dcase.community/documents/challenge2020/technical_reports/DCASE2020_Cornell_130.pdf) and to the [official DCASE 2020 Task 4 Challenge results page](http://dcase.community/challenge2020/task-sound-event-detection-and-separation-in-domestic-environments-results) 
+####For more information have a look at our [DCASE2020 system description](http://dcase.community/documents/challenge2020/technical_reports/DCASE2020_Cornell_130.pdf) and to the [official DCASE 2020 Task 4 Challenge results page](http://dcase.community/challenge2020/task-sound-event-detection-and-separation-in-domestic-environments-results) 
 
 ---
 If you find this code useful please cite:
