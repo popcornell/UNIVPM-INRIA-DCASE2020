@@ -1,0 +1,369 @@
+data:
+  baseline_ckpt: /media/sam/bx500/dcase20_task4/dcase20_baseline_model.p
+  metadata_root: /media/sam/bx500/DCASE_DATA/dataset/metadata/
+  validation_wav_folder: /media/sam/bx500/DCASE_DATA/dataset/audio/validation_16k/ # resampled possibly to speed up things
+  synth_train_wav_folder: /media/sam/bx500/DCASE_DATA/dataset/audio/train/synthetic20/soundscapes/
+  unlabeled_wav_folder: /media/sam/bx500/DCASE_DATA/dataset/audio/train/unlabel_in_domain_16k/
+  weak_wav_folder: /media/sam/bx500/DCASE_DATA/dataset/audio/train/weak_16k/
+  backgrounds_wav_root: /media/sam/bx500/dcase20_task4/synthetic/audio/train/   # resampled possibly and with also tut downloaded
+  fuss_root: /media/sam/bx500/dcase20_task4/data/fuss_dev/ # both reverberated and dry
+  rir_folders:
+    - /media/sam/bx500/rirs_eval/**/*.wav # we use glob # possibly also Sunit CHiME rirs
+  sample_rate: 16000
+  n_classes: 10
+  max_len_seconds: 10
+net:
+  pool_factor: 4
+  median_window: 7 # median window used in inference
+opt:
+  lr_main: 0.0005
+  lr_adv: 0.0002
+  weight_decay: 0.0
+feats:
+  n_feats: 128
+  hop_size: 255
+  type: mel_librosa
+  sr: 16000 # do not change
+  max_len: 628
+  mel_librosa:
+    n_fft: 2048
+    n_mels: 128
+    fmin: 0
+    fmax: 8000
+    take_log: False
+training:
+  batch_size: 8
+  n_epochs: 10000
+  n_epochs_lr_schedule: 50
+  gradient_clip: 5
+  accumulate_batches: 2
+  patience: 20
+  save_top_k: 20
+  num_workers: 4
+  const_max: 2
+  lambda_adv: 0.1
+
+### augmentations ####
+augmentations:
+
+  ###########
+  # synth   #
+  ###########
+
+  # case 1 we use synthetic dataset for weak labels we apply only weak augmentation
+
+  synth_labeled: # on synthetic dataset we have both strong and weak_labels
+    weak_time:
+      max: 1
+      list: # ideally these augmentations generalize well on validation
+        #- speed
+        - contrast
+        - overdrive
+        - pitch
+      reverb:
+        wet: "1"
+      pitch:
+        shift: "np.random.randint(-100, +100)"
+      speed:
+        magnitude: "np.random.uniform(0.95, 1.05)"
+      overdrive:
+        gain: "np.random.randint(5, 50)"
+        colour: "np.random.randint(5, 100)" # bugged ?
+      contrast:
+        magnitude: "np.random.randint(0, 100)"
+    weak_feats:
+      max: 0 # no feats augmentation in original they use cutout similar to specaugment but here we have the problem our
+             # labeled is out of domain
+
+  # case 2 we use synthetic dataset as unlabeled and we apply both strong and weak augmentations here, as well as feats augmentation
+  # we can afford more intensive augmentations as this data is already seen basically in labeled
+
+  synth_unlabeled:
+    weak_time:
+      max: 1
+      list:
+        - pitch
+        #- speed
+        - contrast
+        - overdrive
+      reverb:
+        wet: "1"
+      pitch:
+        shift: "np.random.randint(-100, +100)"
+      speed:
+        magnitude: "np.random.uniform(0.95, 1.05)"
+      overdrive:
+        gain: "np.random.randint(5, 50)"
+        colour: "np.random.randint(5, 100)" # bugged ?
+      contrast:
+        magnitude: "np.random.randint(0, 100)"
+
+    ### strong augmentation is applied ###
+
+    strong_time:
+      max: 1
+      list:
+        #- speed
+        - pitch
+        - contrast
+        - overdrive
+        - highshelf
+        - lowshelf
+        - noiseBurst
+        - sineBurst
+        - roll
+      reverb:
+        wet: "1"
+      pitch:
+        shift: "np.random.randint(-300, +300)"
+      speed:
+        magnitude: "np.random.uniform(0.95, 1.05)"
+      overdrive:
+        gain: "np.random.randint(5, 50)"
+        colour: "np.random.randint(5, 100)" # bugged ?
+      contrast:
+        magnitude: "np.random.randint(0, 100)"
+      highshelf:
+        gain: "np.random.randint(-15, 15)"
+        frequency: "np.random.randint(1000, 4000)"
+      lowshelf:
+        gain: "np.random.randint(-10, 15)"
+        frequency: "np.random.randint(20, 400)"
+      noiseBurst:
+        magnitude: "np.random.rand()"
+      sineBurst:
+        magnitude: "np.random.rand()"
+      roll:
+        magnitude: "np.random.randint(-2400, 2400)"  # Events are merged when 150ms is between them
+
+    weak_feats: # we instead augment strong
+      max: 1
+      list:
+        - specaugment
+        - gaussnoise
+      gaussnoise:
+        mean: "0"
+        snr: "np.random.uniform(10, 30)"
+      specaugment:
+        frequency_masking_para: 2
+        time_masking_para: 3
+        frequency_mask_num: 2
+        time_mask_num: 5
+
+    strong_feats: # we instead augment strong
+      max: 1
+      list:
+        - specaugment
+        - gaussnoise
+      gaussnoise:
+        mean: "0"
+        snr: "np.random.uniform(3, 30)"
+      specaugment:
+        frequency_masking_para: 2
+        time_masking_para: 3
+        frequency_mask_num: 5
+        time_mask_num: 10
+
+  ###################
+  # weakly labeled #
+  ###################
+
+  # case 1 we use weakly labeled weak labels we don't use strong augmentation.
+
+  weakly_labeled: # on synthetic dataset we have both strong and weak_labels
+    weak_time:
+      max: 1
+      list: # ideally these augmentations generalize well on validation
+        #- speed
+        - pitch
+        - contrast
+        - overdrive
+      # reverberation not used
+      pitch:
+        shift: "np.random.randint(-100, +100)"
+      speed:
+        magnitude: "np.random.uniform(0.95, 1.05)"
+      overdrive:
+        gain: "np.random.randint(5, 50)"
+        colour: "np.random.randint(5, 100)" # bugged ?
+      contrast:
+        magnitude: "np.random.randint(0, 100)"
+    weak_feats:
+      max: 0 # no feats augmentation
+
+  # case 2 we treat weakly labeled as unlabeled and we use both
+  weakly_unlabeled:
+    weak_time:
+      max: 1
+      list:
+        #- speed
+        - contrast
+        - overdrive
+      # reverberation not used
+      speed:
+        magnitude: "np.random.uniform(0.95, 1.05)"
+      overdrive:
+        gain: "np.random.randint(5, 50)"
+        colour: "np.random.randint(5, 100)" # bugged ?
+      contrast:
+        magnitude: "np.random.randint(0, 100)"
+
+      ### strong augmentation is applied ###
+
+    strong_time:
+      add_background: 0.5 # we add background with some probability
+      add_reverb: 0.5 # we also add reverb with some probability
+      max: 1
+      list:
+        #- speed
+        - pitch
+        - contrast
+        - overdrive
+        - highshelf
+        - lowshelf
+        - noiseBurst
+        - sineBurst
+        - roll
+      reverb:
+        wet: "np.random.rand()" # we apply reverberation possibly
+      pitch:
+        shift: "np.random.randint(-300, 300)"
+      speed:
+        magnitude: "np.random.uniform(0.95, 1.05)"
+      overdrive:
+        gain: "np.random.randint(5, 50)"
+        colour: "np.random.randint(5, 100)" # bugged ?
+      contrast:
+        magnitude: "np.random.randint(0, 100)"
+      highshelf:
+        gain: "np.random.randint(-15, 15)"
+        frequency: "np.random.randint(1000, 4000)"
+      lowshelf:
+        gain: "np.random.randint(-10, 15)"
+        frequency: "np.random.randint(20, 400)"
+      noiseBurst:
+        magnitude: "np.random.rand()"
+      sineBurst:
+        magnitude: "np.random.rand()"
+      roll:
+        magnitude: "np.random.randint(-2400, 2400)"  # Events are merged when 150ms is between them
+
+    weak_feats:
+      max: 1 # we use feats augmentation
+      list:
+        - gaussnoise
+        - specaugment
+      gaussnoise:
+        mean: "0"
+        snr: "np.random.uniform(10, 30)"
+      specaugment:
+        frequency_masking_para: 2
+        time_masking_para: 3
+        frequency_mask_num: 3
+        time_mask_num: 5
+
+    strong_feats:
+      max: 1
+      list:
+        - specaugment
+        - gaussnoise
+      gaussnoise:
+        mean: "0"
+        snr: "np.random.uniform(3, 30)"
+      specaugment:
+        frequency_masking_para: 2
+        time_masking_para: 3
+        frequency_mask_num: 5
+        time_mask_num: 10
+
+  ###################
+  #   unlabeled     #
+  ###################
+
+  unlabeled:
+    weak_time:
+      max: 1
+      list:
+        #- speed
+        - pitch
+        - contrast
+        - overdrive
+      # reverberation not used
+      speed:
+        magnitude: "np.random.uniform(0.95, 1.05)"
+      pitch:
+        shift: "np.random.randint(-100, 100)"
+      overdrive:
+        gain: "np.random.randint(5, 50)"
+        colour: "np.random.randint(5, 100)" # bugged ?
+      contrast:
+        magnitude: "np.random.randint(0, 100)"
+
+      ### strong augmentation is applied ###
+
+    strong_time:
+      add_background: 0.5 # we add background with some probability
+      add_reverb: 0.5 # we also add reverb with some probability
+      max: 1
+      list:
+        #- speed
+        - pitch
+        - contrast
+        - overdrive
+        - highshelf
+        - lowshelf
+        - noiseBurst
+        - sineBurst
+        - roll
+      reverb:
+        wet: "np.random.rand()" # we apply reverberation possibly
+      speed:
+        magnitude: "np.random.uniform(0.95, 1.05)"
+      pitch:
+        shift: "np.random.randint(-300, 300)"
+      overdrive:
+        gain: "np.random.randint(5, 50)"
+        colour: "np.random.randint(5, 100)" # bugged ?
+      contrast:
+        magnitude: "np.random.randint(0, 100)"
+      highshelf:
+        gain: "np.random.randint(-15, 15)"
+        frequency: "np.random.randint(1000, 4000)"
+      lowshelf:
+        gain: "np.random.randint(-10, 15)"
+        frequency: "np.random.randint(20, 400)"
+      noiseBurst:
+        magnitude: "np.random.rand()"
+      sineBurst:
+        magnitude: "np.random.rand()"
+      roll:
+        magnitude: "np.random.randint(-2400, 2400)"
+
+    weak_feats:
+      max: 1 # no feats augmentation
+      list:
+        - gaussnoise
+        - specaugment
+      gaussnoise:
+        mean: "0"
+        snr: "np.random.uniform(10, 30)"
+      specaugment:
+        frequency_masking_para: 2
+        time_masking_para: 3
+        frequency_mask_num: 3
+        time_mask_num: 5
+
+    strong_feats:
+      max: 1
+      list:
+        - specaugment
+        - gaussnoise
+      gaussnoise:
+        mean: "0"
+        snr: "np.random.uniform(3, 30)"
+      specaugment:
+        frequency_masking_para: 2
+        time_masking_para: 3
+        frequency_mask_num: 5
+        time_mask_num: 10
+

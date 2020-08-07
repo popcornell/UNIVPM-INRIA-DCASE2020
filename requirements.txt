@@ -1,0 +1,9 @@
+asteroid==0.2.1
+asranger>=0.0.5
+desed==1.2.0
+pysndfx==0.3.6
+ffmpeg==4.2
+pandas==1.0.3
+scikit-optimize==0.7.4
+dcase-util==0.2.12
+
