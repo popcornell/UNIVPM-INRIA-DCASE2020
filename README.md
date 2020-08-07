@@ -5,7 +5,7 @@ In this repo we have uploaded the code used for DCASE2020 Track 4 Challenge.
 We achieved as a team the 10th place in the SED category. 
 
 However, regarding class-wise detection performance we placed first for the cat class, thus this repo
-can be especially useful for cat lovers :smiley_cat:.
+can be at least useful for cat lovers :smiley_cat:.
 
 We employed the challenge official baseline architecture based on CNN-RNN and Mean Teacher training.
 This allowed us to focus on the **training procedure**, 
